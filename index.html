@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Translator Tool</title>
+  <link rel="icon" href="translator.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #00ff99;
+      --secondary-color: #006633;
+      --neon-color: #39ff14;
+      --bg-color: rgba(255, 255, 255, 0.1);
+      --error-bg: #ffcccc;
+      --error-color: #990000;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(135deg, #00ff99, #004d33);
+      background-size: 400% 400%;
+      animation: gradientAnimation 15s ease infinite;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    @keyframes gradientAnimation {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .container {
+      width: 90%;
+      max-width: 800px;
+      padding: 2rem;
+      border-radius: 15px;
+      background: rgba(0, 0, 0, 0.5);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      text-align: center;
+      position: relative;
+    }
+    h1 {
+      margin-bottom: 0.5rem;
+      color: var(--primary-color);
+      text-shadow: 0 0 10px var(--neon-color), 0 0 20px var(--neon-color);
+      font-size: 2rem;
+    }
+    #cachedFileInfo {
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+    input[type="file"] {
+      display: block;
+      margin: 0 auto 1.5rem;
+      background: var(--primary-color);
+      color: #000;
+      padding: 0.7rem 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.3s ease;
+    }
+    input[type="file"]:hover {
+      transform: scale(1.05);
+    }
+    .subtitle-block {
+      background: var(--bg-color);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    .subtitle-block p {
+      margin: 0.7rem 0;
+      line-height: 1.5;
+    }
+    .subtitle-block textarea {
+      width: 100%;
+      padding: 1rem;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+      margin-top: 0.7rem;
+      resize: vertical;
+      min-height: 80px;
+      box-sizing: border-box;
+    }
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1rem;
+    }
+    button {
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: var(--primary-color);
+      color: #000;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+    button:hover {
+      background: var(--neon-color);
+      transform: scale(1.05);
+    }
+    #downloadBtn {
+      width: 60%;
+      margin: 1.5rem auto 0;
+      display: block;
+    }
+    .counter {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+    /* Error popup styling */
+    .error-popup {
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--error-bg);
+      color: var(--error-color);
+      padding: 1.5rem 2rem;
+      border: 2px solid var(--error-color);
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      display: none;
+    }
+    .error-popup button {
+      background: var(--error-color);
+      color: #fff;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Translator Tool</h1>
+    <p id="cachedFileInfo"></p>
+    <input type="file" id="fileInput" accept=".srt">
+    <div id="translatorSection" style="display:none;">
+      <div class="subtitle-block" id="subtitleBlock"></div>
+      <div class="counter" id="counterDisplay"></div>
+      <div class="nav-buttons">
+        <button id="prevBtn" disabled>Previous</button>
+        <button id="nextBtn">Next</button>
+      </div>
+      <button id="downloadBtn">Download Translated SRT</button>
+    </div>
+  </div>
+
+  <div id="errorPopup" class="error-popup">
+    <div>Error: Please upload a .srt file.</div>
+    <button id="closeError">Close</button>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const translatorSection = document.getElementById("translatorSection");
+    const subtitleBlock = document.getElementById("subtitleBlock");
+    const counterDisplay = document.getElementById("counterDisplay");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const errorPopup = document.getElementById("errorPopup");
+    const closeError = document.getElementById("closeError");
+    const cachedFileInfo = document.getElementById("cachedFileInfo");
+
+    let subtitles = [];
+    let currentIndex = 0;
+    let originalFileName = "";
+
+    closeError.addEventListener("click", () => {
+      errorPopup.style.display = "none";
+    });
+
+    window.addEventListener("load", () => {
+      const storedSubtitles = localStorage.getItem("srtSubtitles");
+      const storedIndex = localStorage.getItem("srtCurrentIndex");
+      const storedFileName = localStorage.getItem("originalFileName");
+      if (storedSubtitles) {
+        subtitles = JSON.parse(storedSubtitles);
+        if (storedIndex) {
+          currentIndex = parseInt(storedIndex, 10);
+        }
+        if (storedFileName) {
+          originalFileName = storedFileName;
+        }
+        translatorSection.style.display = "block";
+        renderCurrentSubtitle();
+      }
+    });
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (!file.name.toLowerCase().endsWith(".srt")) {
+        errorPopup.style.display = "block";
+        fileInput.value = "";
+        return;
+      }
+
+      originalFileName = file.name;
+      localStorage.setItem("originalFileName", originalFileName);
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const content = event.target.result;
+        parseSRT(content);
+        currentIndex = 0;
+        translatorSection.style.display = "block";
+        renderCurrentSubtitle();
+        saveProgress();
+      }
+      reader.readAsText(file);
+    });
+
+    function parseSRT(data) {
+      let parsedSubtitles = [];
+      const blocks = data.split(/\r?\n\r?\n/);
+      blocks.forEach(block => {
+        const lines = block.split(/\r?\n/);
+        if (lines.length >= 3) {
+          const number = lines[0];
+          const time = lines[1];
+          const text = lines.slice(2).join(" ");
+          parsedSubtitles.push({
+            number,
+            time,
+            text,
+            translation: ""
+          });
+        }
+      });
+      if (subtitles.length && subtitles.length === parsedSubtitles.length) {
+        parsedSubtitles = parsedSubtitles.map((sub, index) => ({
+          ...sub,
+          translation: subtitles[index].translation || ""
+        }));
+      }
+      subtitles = parsedSubtitles;
+    }
+
+    function renderCurrentSubtitle() {
+      if (subtitles.length === 0) return;
+      const sub = subtitles[currentIndex];
+      subtitleBlock.innerHTML = "";
+
+      const header = document.createElement("p");
+      header.innerHTML = `<strong>${sub.number}</strong> ${sub.time}`;
+      subtitleBlock.appendChild(header);
+
+      const originalText = document.createElement("p");
+      originalText.textContent = sub.text;
+      subtitleBlock.appendChild(originalText);
+
+      const textarea = document.createElement("textarea");
+      textarea.placeholder = "Enter translation here...";
+      textarea.value = sub.translation;
+      textarea.addEventListener("input", (e) => {
+        subtitles[currentIndex].translation = e.target.value;
+        saveProgress();
+      });
+      subtitleBlock.appendChild(textarea);
+
+      counterDisplay.textContent = `Subtitle ${currentIndex + 1} of ${subtitles.length}`;
+      prevBtn.disabled = currentIndex === 0;
+      nextBtn.disabled = currentIndex === subtitles.length - 1;
+      saveProgress();
+    }
+
+    prevBtn.addEventListener("click", () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        renderCurrentSubtitle();
+        saveProgress();
+      }
+    });
+
+    nextBtn.addEventListener("click", () => {
+      if (currentIndex < subtitles.length - 1) {
+        currentIndex++;
+        renderCurrentSubtitle();
+        saveProgress();
+      }
+    });
+
+    downloadBtn.addEventListener("click", () => {
+      const translatedSRT = subtitles.map(sub => {
+        const text = sub.translation.trim() !== "" ? sub.translation.trim() : sub.text;
+        return `${sub.number}\n${sub.time}\n${text}\n`;
+      }).join("\n");
+
+      const blob = new Blob([translatedSRT], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      
+      const baseName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
+      let newFileName;
+      if (baseName.includes("_en")) {
+        newFileName = baseName.replace("_en", "_lg");
+      } else {
+        newFileName = `${baseName}_lg`;
+      }
+      a.download = `${newFileName}.srt`;
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      localStorage.removeItem("srtSubtitles");
+      localStorage.removeItem("srtCurrentIndex");
+      localStorage.removeItem("originalFileName");
+      subtitles = [];
+      currentIndex = 0;
+      translatorSection.style.display = "none";
+      cachedFileInfo.textContent = "";
+      fileInput.value = "";
+    });
+
+    function saveProgress() {
+      localStorage.setItem("srtSubtitles", JSON.stringify(subtitles));
+      localStorage.setItem("srtCurrentIndex", currentIndex);
+    }
+  </script>
+</body>
+</html>
