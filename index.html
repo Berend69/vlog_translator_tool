@@ -78,11 +78,15 @@
       border-radius: 10px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     }
-    /* Override parsed text to use Arial instead of Orbitron */
-    .subtitle-block, 
-    .subtitle-block p, 
+    .subtitle-block,
+    .subtitle-block p,
     .subtitle-block textarea {
       font-family: Arial, sans-serif;
+    }
+    .subtitle-block strong {
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+      text-shadow: none;
     }
     .subtitle-block p {
       margin: 0.7rem 0;
@@ -130,8 +134,9 @@
       margin-top: 0.5rem;
       font-size: 0.9rem;
       color: #ccc;
+      font-family: Arial, sans-serif;
+      font-weight: bold;
     }
-    /* Error popup styling */
     .error-popup {
       position: fixed;
       top: 20%;
